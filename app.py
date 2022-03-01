@@ -22,7 +22,11 @@ def hello():
     db = mongo.db
     db.test.insert_one(post)
     #find document in test collection
+<<<<<<< HEAD
     item = db.test.find_one({"Name": "Test123"})
+=======
+    item = db.test.find_one({"Name": "Nidhi Dubagunta"})
+>>>>>>> c4dd52f0c67e7f1803bf197fb2cb292fafd81853
     str = "Name: " +item["Name"] +"\n\nBirthday: "+item["Birthday"]
     return str
 
