@@ -26,4 +26,12 @@ def hello():
     str = "Name: " +item["Name"] +"\n\nBirthday: "+item["Birthday"]
     return str
 
+@app.route('/login',methods = ['POST', 'GET']) #not sure if this is right
+def login():
+    if request.method == 'POST':
+        print('test')
+    
+if __name__ == '__app__':
+    app.run(debug = True)
+
 
