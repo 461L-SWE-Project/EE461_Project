@@ -11,9 +11,9 @@ project = Blueprint('project', __name__)
 ID = 1
 
 
-@project.route('/<username>/projects_homepage' ,methods=['GET'])
-def getProjectInfo(username):
-    #username = request.form["Username"]
+@project.route('/projects_homepage' ,methods=['GET'])
+def getProjectInfo():
+    username = request.form.get["Username"]
     mongo = init.getDatabase()
     users = mongo.db.user_authentication
     projects = mongo.db.project_information
@@ -111,8 +111,9 @@ def getProjectInfo(username):
     
 
         
-@project.route('/<username>/create_project' ,methods=['POST'])
-def createProject(username):       
+@project.route('/create_project' ,methods=['POST'])
+def createProject():       
+    username = request.form.get["Username"]
     mongo = init.getDatabase()
     users = mongo.db.user_authentication
     projects = mongo.db.project_information
@@ -186,11 +187,11 @@ def createProject(username):
 
 
 
-@project.route('/<username>/delete_project' ,methods=['POST'])
+@project.route('/delete_project' ,methods=['POST'])
 def deleteProject(username): 
     #need to send request object so I can get access to multiple pieces of data
-    projectName = request.form["Name"]
-    username = request.form["Username"]
+    projectName = request.form.get["Name"]
+    username = request.form.get["Username"]
 
     mongo = init.getDatabase()
     users = mongo.db.user_authentication
