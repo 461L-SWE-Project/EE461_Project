@@ -233,6 +233,50 @@ def deleteProject(username):
 
         #FINALLY DELETE THE PROJECT
         projects.delete_one({"Name", projectName})
+        
+#stuff malvika wrote (for debugging purposes)
+        
+#update existing project
+@projects.route('/update_project', methods =['POST'])
+def update_project():
+    if request.method == 'POST':
+        user = request.form['UserID']
+        project_id = request.form["ID"]
+        h1_alloc = request.form["HWSet1Alloc"]
+        h2_alloc = request.form["HWSet2Alloc"]
+        hashed_value_user = hash_string(user)
+        
+        db = get_db()
+        projects_col = db.project_information 
+        project_entry = projects_col.update({"id": project_id}, {"$set": {"HWSet1Alloc": h1_alloc, "HWSet2Alloc": h2_alloc}})
+        
+        # now update hardware collection
+        hardware_col = db.hardware_resources
+        cursor = hardware_col.find({})
+        id_hardware = "HWSet1Alloc"
+        hardware_allocations = [h1_alloc, h2_alloc]
+        index = 0
+        for document in cursor:
+            id_hardware = document["id"]
+            # if they have allocated too much, sends error code 
+            if document["allocation"] - hardware_allocations[index] < 0:
+                return {'Response': 'Fail', 'Message': 'Allocated too much hardware'}
+            hardware_col.update_one({"id" : id_hardware}, {"$set": {"allocation" : document["allocation"] - hardware_allocations[index]}})
+            index = index + 1
+        return {'Response': 'Success', 'Mesage': 'Successfully Allocated Hardware'}
+            
+#retrieving all hardware sets
+@projects.route('/get_hardware',methods =['GET', 'POST'])
+def send_hardware():
+    if request.method == 'GET':
+        db = get_db()
+        hardware_col = db.hardware_resources
+        
+        cursor = hardware_col.find({})
+        dictToSend = {}
+        for elem in cursor:
+            dictToSend.update(elem['id'], elem)
+    return dictToSend
 
 
 

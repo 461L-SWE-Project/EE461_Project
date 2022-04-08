@@ -34,7 +34,24 @@ def register():
             users.insert_one(post)
             return  {"Response": "Success" , "Message": "Succesfully Created Account"}
     
-
+    
+@auth.route('/login', methods =['POST'])
+def login():
+    if request.method == 'POST':
+        user = request.form['username']
+        password = request.form['password']
+        # now checkign w encryption
+        hashed_value_user = hash_string(user)
+        hashed_value_pass = hash_string(password)
+        
+        #now search in database
+        db = get_db()
+        user_col = db.user_authentication
+        if user_col.find({username: hashed_value_user, password: hashed_value_pass}).count() == 0:
+            #return an error
+            return {'Response': 'Fail', 'Message': 'Could not find username or password'}
+    
+        return {'Response': 'Success', 'Message': 'Successfully Logged in'}
 
 
 
