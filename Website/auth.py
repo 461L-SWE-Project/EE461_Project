@@ -1,15 +1,17 @@
+from sys import stderr
 from flask import Blueprint, Flask, request
 from flask_pymongo import PyMongo
 from . import init
 from . import encryption
+import json
 
 
 auth = Blueprint('auth', __name__)
 
 
-@auth.route('/')
-def home():
-    return "Home Page"
+# @auth.route('/') # Maybe we should register this without the blueprint, since this isn't really an auth module route - SIDHARTH
+# def home():
+#     return "Home Page"
 
 @auth.route('/register', methods=['POST'])
 def register():
@@ -35,24 +37,28 @@ def register():
             return  {"Response": "Success" , "Message": "Succesfully Created Account"}
     
     
-@auth.route('/login', methods =['POST'])
+@auth.route('/authenticate', methods =['POST'])
 def login():
+    # debug = json.loads(request)
+    # auth.logger.info(debug)
     if request.method == 'POST':
-        user = request.form['username']
-        password = request.form['password']
-        # now checkign w encryption
-        hashed_value_user = hash_string(user)
-        hashed_value_pass = hash_string(password)
+        user = request.json['username']
+        password = request.json['password']
+        # now checking w encryption
+        hashed_value_user = encryption.hash_string(user)
+        hashed_value_pass = encryption.hash_string(password)
+        print(encryption.hash_string(user),stderr)
+        print(encryption.hash_string(password),stderr)
         
         #now search in database
-        db = get_db()
-        user_col = db.user_authentication
-        if user_col.find({username: hashed_value_user, password: hashed_value_pass}).count() == 0:
+        mongo = init.getDatabase()
+        user_col = mongo.db.user_authentication
+        print(user_col.find_one({"username": hashed_value_user, "password": hashed_value_pass}),stderr)
+        if user_col.find_one({"username": hashed_value_user, "password": hashed_value_pass}) == None: #Changed JSON field names to strings, not sure if they need to be variables, but it made the error go away - Sidharth
             #return an error
-            return {'Response': 'Fail', 'Message': 'Could not find username or password'}
+            return {'Response': False, 'Message': 'Could not find username or password'}
     
-        return {'Response': 'Success', 'Message': 'Successfully Logged in'}
-
+        return {"Response": True, 'Message': 'Successfully Logged in'}  #Sidharth - We need to track logins somehow in order to validate project / dataset requests that are coming in.
 
 
 

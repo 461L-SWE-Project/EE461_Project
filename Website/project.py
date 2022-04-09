@@ -5,6 +5,7 @@ from . import init
 from . import encryption
 
 
+
 project = Blueprint('project', __name__)
 
 #figure out what to do with this
@@ -237,16 +238,16 @@ def deleteProject(username):
 #stuff malvika wrote (for debugging purposes)
         
 #update existing project
-@projects.route('/update_project', methods =['POST'])
+@project.route('/update_project', methods =['POST'])
 def update_project():
     if request.method == 'POST':
         user = request.form['UserID']
         project_id = request.form["ID"]
         h1_alloc = request.form["HWSet1Alloc"]
         h2_alloc = request.form["HWSet2Alloc"]
-        hashed_value_user = hash_string(user)
+        hashed_value_user = encryption.hash_string(user)
         
-        db = get_db()
+        db = init.get_db()
         projects_col = db.project_information 
         project_entry = projects_col.update({"id": project_id}, {"$set": {"HWSet1Alloc": h1_alloc, "HWSet2Alloc": h2_alloc}})
         
@@ -266,10 +267,10 @@ def update_project():
         return {'Response': 'Success', 'Mesage': 'Successfully Allocated Hardware'}
             
 #retrieving all hardware sets
-@projects.route('/get_hardware',methods =['GET', 'POST'])
+@project.route('/get_hardware',methods =['GET', 'POST'])
 def send_hardware():
     if request.method == 'GET':
-        db = get_db()
+        db = init.get_db()
         hardware_col = db.hardware_resources
         
         cursor = hardware_col.find({})
