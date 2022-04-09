@@ -16,25 +16,25 @@ auth = Blueprint('auth', __name__)
 @auth.route('/register', methods=['POST'])
 def register():
     if request.method == "POST":
-        username = request.form.get['username']
-        password = request.form.get['password']
+        username = request.json['username']
+        password = request.json['password']
         hashed_username = encryption.hash_string(username)
         mongo = init.getDatabase()
         users = mongo.db.user_authentication
-        if users.find_one({"Username": hashed_username}) != None:
-            return  {"Response": "Fail" , "Message": "Username already exists"}
-        email = request.form['email']
-        if '@' not in email or " " in email:
-            return  {"Response": "Fail" , "Message": "Invalid email"}
+        if users.find_one({"username": hashed_username}) != None:
+            return  {"Response": False , "Message": "Username already exists"}
+        # email = request.form['email']
+        # if '@' not in email or " " in email:
+        #     return  {"Response": False , "Message": "Invalid email"}
         else:
             hashed_password = encryption.hash_string(password)
             post = {
-                "Username" : hashed_username,
-                "Password" : hashed_password,
-                "Email" : email
+                "username" : hashed_username,
+                "password" : hashed_password,
+                # "Email" : email
             }
             users.insert_one(post)
-            return  {"Response": "Success" , "Message": "Succesfully Created Account"}
+            return  {"Response": True , "Message": "Succesfully Created Account"} #Should return a JWT here as well because we're going to log the user in
     
     
 @auth.route('/authenticate', methods =['POST'])
