@@ -3,7 +3,7 @@ from flask_pymongo import PyMongo
 from os import path
 from .auth import auth
 from .project import project
-
+from flask_cors import CORS
 
 mongo = None
 
@@ -11,7 +11,7 @@ def createApp():
     app = Flask(__name__)
     ##used a test databse in my cluster for no2
     app.config["MONGO_URI"] = "mongodb+srv://threeMusketeers461:ee461l3@cluster0.o18a8.mongodb.net/Team_Project?retryWrites=true&w=majority"
-    
+    CORS(app)
     #I have no idea about this..
     global mongo
     mongo = PyMongo(app)
