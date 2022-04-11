@@ -1,1 +1,2 @@
-# EE461_Project
+# Backend
+This is the backend repository for our project
