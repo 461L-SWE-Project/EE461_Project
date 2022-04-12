@@ -4,6 +4,9 @@ from flask_pymongo import PyMongo
 from . import init
 from . import encryption
 import json
+from flask_jwt_extended import jwt_required
+from flask_jwt_extended import create_access_token
+from flask_jwt_extended import get_jwt_identity
 
 
 auth = Blueprint('auth', __name__)
@@ -34,7 +37,15 @@ def register():
                 # "Email" : email
             }
             users.insert_one(post)
-            return  {"Response": True , "Message": "Succesfully Created Account"} #Should return a JWT here as well because we're going to log the user in
+            #creating JWT token
+            active_col = mongo.db.active_users 
+            access_token = create_access_token(identity=username)
+            active_post = {
+                "token_id": access_token,
+                "username": username
+            }
+            active_col.insert_one(active_post)
+            return  {"Response": True , "Message": "Succesfully Created Account", "token": access_token} #Should return a JWT here as well because we're going to log the user in
     
     
 @auth.route('/authenticate', methods =['POST'])
@@ -57,11 +68,31 @@ def login():
         if user_col.find_one({"username": hashed_value_user, "password": hashed_value_pass}) == None: #Changed JSON field names to strings, not sure if they need to be variables, but it made the error go away - Sidharth
             #return an error
             return {'Response': False, 'Message': 'Could not find username or password'}
+        
+        active_col = mongo.db.active_users 
+        access_token = create_access_token(identity=user)
+        active_post = {
+            "token_id": access_token,
+            "username": user
+        }
+        active_col.insert_one(active_post)
+        return {"Response": True, 'Message': 'Successfully Logged in', 'token':access_token}  #Sidharth - We need to track logins somehow in order to validate project / dataset requests that are coming in.
+
+
+@auth.route('/logout')
+@jwt_required()
+def logout():
+    current_user_id = get_jwt_identity()
+    #delete from active users
+    active_col = mongo.db.active_users 
+    active_col.delete_one(active_col.find_one({'username': current_user_id}))
     
-        return {"Response": True, 'Message': 'Successfully Logged in'}  #Sidharth - We need to track logins somehow in order to validate project / dataset requests that are coming in.
-
-
-
+    return {"Response": True, "Message": "Successfully logged out"}
+    
+    
+    
+    
+    
 # #this works
 # @auth.route('/register/<username>')
 # def register(username):
