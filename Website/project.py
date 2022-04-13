@@ -1,4 +1,4 @@
-from datetime import datetime
+import datetime
 from flask import Blueprint, Flask, request
 from flask_pymongo import PyMongo
 from . import init
@@ -7,20 +7,19 @@ from . import encryption
 
 project = Blueprint('project', __name__)
 
-#figure out what to do with this
-ID = 1
+
 
 
 @project.route('/projects_homepage' ,methods=['GET'])
 def getProjectInfo():
-    username = request.form.get["Username"]
+    username = request.json["username"]
     mongo = init.getDatabase()
     users = mongo.db.user_authentication
     projects = mongo.db.project_information
     hardware = mongo.db.hardware_resources
 
-    hashed_username = encryption.hash_string(username)
-    user_info = users.find_one({"Username": hashed_username})
+    #hashed_username = encryption.hash_string(username)
+    user_info = users.find_one({"username": username})
     """
         User:
             Username : ""
@@ -35,65 +34,66 @@ def getProjectInfo():
     
     """
     returnObj = {
-        "Username" : username,
-        "Total Hardware Allocation" : {},
-        "Projects" : []
+        "username" : username,
+        "user total hardware allocation" : {},
+        "projects" : []
     }
    
    #find user's total HW allocations
-    checkedOutHW = user_info["Checked_out_hardware"] #should also be dictionary form
-    returnObj["Total Hardware Allocation"] = checkedOutHW
+    checkedOutHW = user_info["checked_out_hardware"] #should also be dictionary form
+    returnObj["user total hardware allocation"] = checkedOutHW
 
 
-    #List of user's projects and hardware checked out for each project
-    #only one user per project 
-    projectIds = user_info["Projects"]
+    #List of user's projects and total hardware checked out for each project
+    projectIds = user_info["projects"]
     for Id in projectIds:
-        project = projects.find_one({"ID": Id})
-        projectName = project["Name"]
-        #dictionary of dictionaries or list of dictionaries ???
+        project = projects.find_one({"id": Id})
+        projectName = project["name"]
 
-        projectAlloc = project["HW Allocation"] #should be a dictionary 
+        projectAlloc = project["total_hw"] #should be a dictionary containing total hw allocation
 
-        projectAlloc["Project Name"]  = projectName
-        projectAlloc["Project ID"]  = Id
+        projectAlloc["name"]  = projectName #Add project name and ID to that dictionary 
+        projectAlloc["id"]  = Id
         """
         Format:
         {
-            "Name": ProjectName,
+            "name": ProjectName,
+            "id" : ID
             "HW1": 40,
             "HW2: 30,
         }
 
-        Each dictionary is stored in a list (can make it a dictionary of dictionaries later if necessary)
+      
         """
+        #list of dictionaries
         returnObj["Projects"].append(projectAlloc)
 
 
 
     #If multiple users per project
     # for Id in projectIds:
-    #     project = projects.find_one({"Project_id": Id})
-    #     team_alloc_info = project["Team Members"] #should be a dictionary
+    #     project = projects.find_one({"id": Id})
+    #     team_alloc_info = project["team_members"] #should be a dictionary
        
-    #     user_alloc_info = team_alloc_info[hashed_username]
-    #     user_alloc_info["Project Name"] = project["Name"]
-    #     user_alloc_info["Project ID"]  = Id
+    #     user_alloc_info = team_alloc_info[username]
+    #     user_alloc_info["name"] = project["Name"]
+    #     user_alloc_info["id"]  = Id
     #     returnObj["Projects"].append(user_alloc_info)
 
     #don't know how I should return this?
     hardware_allocations={}
     #this should be fine
-    for document in hardware:
-        key = document["Name"]
-        capacity = document["Capacity"]
-        availability = document["Availability"]
+    for document in hardware.find():
+        key = document["name"]
+        capacity = document["capacity"]
+        availability = document["availability"]
         value = {
-            "Capacity" : capacity,
-            "Availability" : availability
+            "capacity" : capacity,
+            "availability" : availability
         }
         hardware_allocations[key] = value
         """
+        Might have to change this so that each HWSet is its own field -- should be able to do that p easily 
         Format of this :
         {
             "HW1" : {
@@ -106,61 +106,78 @@ def getProjectInfo():
             }
         }
         """
-
+    returnObj["general hardware info"] = hardware_allocations
     return returnObj
     
 
-        
+#WORKING AS OF RIGHT NOW   
 @project.route('/create_project' ,methods=['POST'])
 def createProject():       
-    username = request.form.get["Username"]
+    username = request.json["username"]
     mongo = init.getDatabase()
     users = mongo.db.user_authentication
     projects = mongo.db.project_information
     hardware = mongo.db.hardware_resources
 
 
-    hashed_username = encryption.hash_string(username)
-    user_info = users.find_one({"Username": hashed_username})
+    #hashed_username = encryption.hash_string(username)
+    user_info = users.find_one({"username":username})
+    print(user_info)
 
 
     if request.method == "POST":
         #do we want unique project names, or is it fine bc we have project IDs
-        projectName = request.form["Name"]
+        projectName = request.json["Name"]
         dateCreated = datetime.date.today() #vs datetime.datetime.now()
         creator = username
         hardware_allocation = {}
         projectMembers = {}
+        ID = projectName + "_" + creator
+
+
+        if projects.find_one({"id":ID}) != None:
+            return {"Response": False, "Message" : "Project Name already being used"}
 
         #how is hardware checkout info going to be sent to backend ?
-        HWDict = request.form["HW_Alloc"]
+        HW1 = request.json["HWSet1Alloc"]
+        HW2 = request.json["HWSet1Alloc"] 
+
+        
+        HWDict = {
+            "HW1": HW1,
+            "HW2" : HW2
+        }
+        print("HW DICTIONARY " )
+        print(HWDict)
 
         #im assuming its gonna come in a dictionary format : e.g {HW1: 20, HW2: 40}
-        user_HW = user_info["Checked_out_hardware"]
+        user_HW = user_info["checked_out_hardware"]
         for key in HWDict:
             #check if amount checked out is available -- 
-            doc = hardware.find_one({"Name":key})
+            doc = hardware.find_one({"name":key})
             
-            if doc["Availability"] < HWDict[key]:
+            if int(doc["availability"]) < int(HWDict[key]):
                 errorMessage = "Not enough hardware available: " +key
-                return {"Response" : "Fail", "Message" : errorMessage}
+                return {"Response" : False, "Message" : errorMessage}
             else:
-                avail = doc["Availability"]
-                avail-=HWDict[key]
-                
+                avail = int(doc["availability"])
+                avail-= int(HWDict[key])
+                print(avail)
                 #udpate hardware collection 
-                query = {"Name": key}
-                update = {"$set": {"Availability": avail}}
+                query = {"name": key}
+                update = {"$set": {"availability": avail}}
                 hardware.update_one(query,update)
 
                 #update user information
 
-                user_HW[key]= user_HW[key]+HWDict[key]
+                user_HW[key]= int(user_HW[key])+int(HWDict[key])
 
-
+        user_projects = user_info["projects"]
+        
+        user_projects.append(ID)
         #after looping succesfully, post hardware updates to database at once
-        query = {"Username":hashed_username}
-        update = {"$set": {"Checked_out_hardware": user_HW}}
+        query = {"username":username}
+        update = {"$set": {"checked_out_hardware": user_HW, "projects":user_projects}}
         users.update_one(query,update)
 
                 
@@ -169,89 +186,151 @@ def createProject():
         hardware_allocation = HWDict
         projectMembers[username] = HWDict #first member = creator :)
 
+        
         post = {
-            "Name" : projectName,
-            "ID" : ID,
-            "Creator": username,
-            "Date Created" : dateCreated,
-            "HW_Allocation" : HWDict,
-            "Project Members" : projectMembers
+            "name" : projectName,
+            "id" : ID,
+            "creator": creator,
+            "date_Created" : str(dateCreated),
+            "total_hw" : HWDict,
+            "project_members" : projectMembers
 
         }
 
         projects.insert_one(post)
         #update ID for next project creation
-        ID = ID + 1
         return  {"Response": "Success" , "Message": "Succesfully Created Project"}
      
 
 
 
 @project.route('/delete_project' ,methods=['POST'])
-def deleteProject(username): 
+def deleteProject(): 
     #need to send request object so I can get access to multiple pieces of data
-    projectName = request.form.get["Name"]
-    username = request.form.get["Username"]
+    projectID = request.json["projectID"] #?
+    username = request.json["username"]
 
     mongo = init.getDatabase()
     users = mongo.db.user_authentication
     projects = mongo.db.project_information
     hardware = mongo.db.hardware_resources
 
-    projectToDelete = projects.find_one({"Name": projectName})
-    projectMembers = projectToDelete["Project Members"]
+    projectToDelete = projects.find_one({"id": projectID})
+    projectMembers = projectToDelete["project_members"]
 
 
     #THINGS NEEDED TO BE UPDATED IN THE DATABASE:
         #HWSET COLLECTION (check hardware back in)
         #AMOUNT CHECKED OUT IN EACH USERS DOCUMENT
     for member in projectMembers:
-        checkedOut = projectMembers[member]
-        user = users.find_one({"Name": member})
-        userHW = user["Checked out hardware"] #dictionary
-        userProjects = user["Projects"]
-        userProjects.remove(projectName)#remove name from their list of projects
+        checkedOut = projectMembers[member] #dictionary of user's checked out hw for that project
+        user = users.find_one({"name": member})
+        userHW = user["checked_out_hardware"] #dictionary of user's total checked out hw
+        userProjects = user["projects"]
+        userProjects.remove(projectID)#remove name from their list of projects
 
         for hwSet in checkedOut:
-            HWDoc = hardware.find_one({"Name": hwSet})
+            HWDoc = hardware.find_one({"name": hwSet})
 
             amt = checkedOut[hwSet]
-            availability = HWDoc["Availability"] + amt
+            availability = HWDoc["availability"] + amt
 
             userHW[hwSet] = userHW[hwSet] - amt
 
-            query = {"Name": hwSet}
-            update = {"$set": {"Availability":availability}}
+            query = {"name": hwSet}
+            update = {"$set": {"availability":availability}}
             hardware.update_one(query,update)
 
-        query = {"Username":member}
-        update = {"$set": {"Checked out hardware": userHW, "Projects":userProjects}}
+        query = {"username":member}
+        update = {"$set": {"checked_out_hardware": userHW, "projects":userProjects}}
         users.update_one(query, update)
 
 
 
 
         #FINALLY DELETE THE PROJECT
-        projects.delete_one({"Name", projectName})
+        projects.delete_one({"id", projectID})
+
+@project.route('/join_project', methods = ['POST'])
+def join_project():
+    if request.method == 'POST':
+        token = request.json['token']
+        mongo = init.getDatabase()
+        users = mongo.db.user_authentication
+        hardware = mongo.db.hardware_resources
+        projects = mongo.db.project_information
+        active_users = mongo.db.active_users
+
+
+        #check if user is still logged in
+        if active_users.find_one({"token_id": token}) == None:
+            return {"Response": False, "Message" : "User is no longer logged in. "}
+        
+        find_user = active_users.find_one({"token_id": token})
+        username = find_user["username"]
+
+        
+        project_to_join = request.json["projectID"] #?
+
+
+
+
+        #check if project exists
+        if projects.find_one({"id": project_to_join}) == None:
+            return {"Response" : False, "Message": "Project ID does not exist"}
+
+        #add project to their list of projects
+        user = users.find_one({"username":username})
+        user_projects = user["projects"]
+        user_projects.append(project_to_join)
+        query = {"username":username}
+        update = {"$set": {"projects":user_projects}}
+        users.update_one(query, update)
+       
+        project = projects.find_one({"id": project_to_join})
+        projectMembers = project["project_members"]
+        #now add user to the project -- have no hw allocated to them as of now
+
+        user_HW = {}
+        #amt checked out for each hardware is 0
+        for document in hardware.find():
+            key = document["name"]
+            user_HW[key] = 0
+        
+        projectMembers[username] = user_HW
+
+        query = {"id":project_to_join}
+        update = {"$set": {"project_members":projectMembers}}
+        projects.update_one(query, update)
+
+        return {"Response": True, "Message": "Successfully joined project"}
+
+
+
+
         
 #stuff malvika wrote (for debugging purposes)
         
 #update existing project
-@projects.route('/update_project', methods =['POST'])
+@project.route('/update_project', methods =['POST'])
 def update_project():
+
+    #figure out how we're doing this
     if request.method == 'POST':
-        user = request.form['UserID']
-        project_id = request.form["ID"]
-        h1_alloc = request.form["HWSet1Alloc"]
-        h2_alloc = request.form["HWSet2Alloc"]
-        hashed_value_user = hash_string(user)
+        user = request.json['UserID']
+        project_id = request.json["ID"]
+        h1_alloc = request.json["hw1"]
+        h2_alloc = request.json["hw2"]
+        hashed_value_user = encryption.hash_string(user)
         
-        db = get_db()
-        projects_col = db.project_information 
+
+        #change to fit format of the database
+        mongo = init.getDatabase()
+        projects_col = mongo.db.project_information 
         project_entry = projects_col.update({"id": project_id}, {"$set": {"HWSet1Alloc": h1_alloc, "HWSet2Alloc": h2_alloc}})
         
         # now update hardware collection
-        hardware_col = db.hardware_resources
+        hardware_col = mongo.db.hardware_resources
         cursor = hardware_col.find({})
         id_hardware = "HWSet1Alloc"
         hardware_allocations = [h1_alloc, h2_alloc]
@@ -266,11 +345,11 @@ def update_project():
         return {'Response': 'Success', 'Mesage': 'Successfully Allocated Hardware'}
             
 #retrieving all hardware sets
-@projects.route('/get_hardware',methods =['GET', 'POST'])
+@project.route('/get_hardware',methods =['GET', 'POST'])
 def send_hardware():
     if request.method == 'GET':
-        db = get_db()
-        hardware_col = db.hardware_resources
+        mongo = init.getDatabase()
+        hardware_col = mongo.db.hardware_resources
         
         cursor = hardware_col.find({})
         dictToSend = {}
