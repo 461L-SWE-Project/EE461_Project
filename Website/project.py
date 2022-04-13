@@ -9,8 +9,8 @@ project = Blueprint('project', __name__)
 
 
 
-
-@project.route('/projects_homepage' ,methods=['GET'])
+#WORKING 
+@project.route('/projects_homepage' ,methods=['POST'])
 def getProjectInfo():
     username = request.json["username"]
     mongo = init.getDatabase()
@@ -66,7 +66,7 @@ def getProjectInfo():
       
         """
         #list of dictionaries
-        returnObj["Projects"].append(projectAlloc)
+        returnObj["projects"].append(projectAlloc)
 
 
 
