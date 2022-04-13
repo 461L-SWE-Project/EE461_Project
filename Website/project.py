@@ -215,7 +215,13 @@ def deleteProject():
     projects = mongo.db.project_information
     hardware = mongo.db.hardware_resources
 
+    if projects.find_one({"id": projectID}) == None:
+            return {"Response" : False, "Message": "Project ID does not exist"}
+
     projectToDelete = projects.find_one({"id": projectID})
+    if projectToDelete["creator"] != username:
+        return {"Response": False, "Message": "Can only delete project if you are the creator"}
+
     projectMembers = projectToDelete["project_members"]
 
 
@@ -223,20 +229,21 @@ def deleteProject():
         #HWSET COLLECTION (check hardware back in)
         #AMOUNT CHECKED OUT IN EACH USERS DOCUMENT
     for member in projectMembers:
+        print(member)
         checkedOut = projectMembers[member] #dictionary of user's checked out hw for that project
-        user = users.find_one({"name": member})
+        user = users.find_one({"username": member})
         userHW = user["checked_out_hardware"] #dictionary of user's total checked out hw
         userProjects = user["projects"]
+
         userProjects.remove(projectID)#remove name from their list of projects
 
         for hwSet in checkedOut:
             HWDoc = hardware.find_one({"name": hwSet})
 
-            amt = checkedOut[hwSet]
-            availability = HWDoc["availability"] + amt
+            amt = int(checkedOut[hwSet])
+            availability = int(HWDoc["availability"]) + amt
 
-            userHW[hwSet] = userHW[hwSet] - amt
-
+            userHW[hwSet] = int(userHW[hwSet]) - amt
             query = {"name": hwSet}
             update = {"$set": {"availability":availability}}
             hardware.update_one(query,update)
@@ -248,13 +255,14 @@ def deleteProject():
 
 
 
-        #FINALLY DELETE THE PROJECT
-        projects.delete_one({"id", projectID})
+    #FINALLY DELETE THE PROJECT
+    projects.delete_one({"id":projectID})
+    return {"Response": True, "Message": "Successfully deleted project"}
 
 @project.route('/join_project', methods = ['POST'])
 def join_project():
     if request.method == 'POST':
-        token = request.json['token']
+
         mongo = init.getDatabase()
         users = mongo.db.user_authentication
         hardware = mongo.db.hardware_resources
@@ -263,13 +271,14 @@ def join_project():
 
 
         #check if user is still logged in
-        if active_users.find_one({"token_id": token}) == None:
-            return {"Response": False, "Message" : "User is no longer logged in. "}
+        # token = request.json['token']
+        # if active_users.find_one({"token_id": token}) == None:
+        #     return {"Response": False, "Message" : "User is no longer logged in. "}
         
-        find_user = active_users.find_one({"token_id": token})
-        username = find_user["username"]
+        # find_user = active_users.find_one({"token_id": token})
+        # username = find_user["username"]
 
-        
+        username = request.json["username"]
         project_to_join = request.json["projectID"] #?
 
 
