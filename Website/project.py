@@ -140,7 +140,7 @@ def createProject():
 
         #how is hardware checkout info going to be sent to backend ?
         HW1 = request.json["HWSet1Alloc"]
-        HW2 = request.json["HWSet1Alloc"] 
+        HW2 = request.json["HWSet2Alloc"] 
 
         
         HWDict = {
@@ -326,32 +326,111 @@ def update_project():
 
     #figure out how we're doing this
     if request.method == 'POST':
-        user = request.json['UserID']
-        project_id = request.json["ID"]
-        h1_alloc = request.json["hw1"]
-        h2_alloc = request.json["hw2"]
-        hashed_value_user = encryption.hash_string(user)
+        user = request.json['username']
+        project_id = request.json["projectID"]
+        actionType = request.json["action"]
+        h1_alloc = request.json["HWSet1Alloc"]
+        h2_alloc = request.json["HWSet2Alloc"]
+
+        HWDict = {
+            "HW1": h1_alloc,
+            "HW2" : h2_alloc
+        }
+    
         
 
         #change to fit format of the database
         mongo = init.getDatabase()
-        projects_col = mongo.db.project_information 
-        project_entry = projects_col.update({"id": project_id}, {"$set": {"HWSet1Alloc": h1_alloc, "HWSet2Alloc": h2_alloc}})
-        
-        # now update hardware collection
         hardware_col = mongo.db.hardware_resources
-        cursor = hardware_col.find({})
-        id_hardware = "HWSet1Alloc"
-        hardware_allocations = [h1_alloc, h2_alloc]
-        index = 0
-        for document in cursor:
-            id_hardware = document["id"]
-            # if they have allocated too much, sends error code 
-            if document["allocation"] - hardware_allocations[index] < 0:
-                return {'Response': 'Fail', 'Message': 'Allocated too much hardware'}
-            hardware_col.update_one({"id" : id_hardware}, {"$set": {"allocation" : document["allocation"] - hardware_allocations[index]}})
-            index = index + 1
-        return {'Response': 'Success', 'Mesage': 'Successfully Allocated Hardware'}
+        projects_col = mongo.db.project_information 
+        user_col = mongo.db.user_authentication
+
+        project = projects_col.find_one({"id": project_id})
+        #project's total HW info
+        project_HW = project["total_hw"]
+        #get users hw info for given project
+        projectMembers = project["project_members"]
+        currentUser = projectMembers[user]
+        print(currentUser)
+
+        #user's document
+        user_info = user_col.find_one({"username": user})
+        #user's total HW info
+        user_HW = user_info["checked_out_hardware"]
+
+        for key in HWDict:
+            #check if amount checked out is available -- 
+            doc = hardware_col.find_one({"name":key})
+            if(actionType == "check-out"):                            
+                if int(doc["availability"]) < int(HWDict[key]):
+                    errorMessage = "Not enough hardware available: " +key
+                    return {"Response" : False, "Message" : errorMessage}
+                else:
+                    avail = int(doc["availability"])
+                    avail-= int(HWDict[key])
+                
+                #udpate hardware collection 
+                    query = {"name": key}
+                    update = {"$set": {"availability": avail}}
+                    hardware_col.update_one(query,update)
+
+                #update user information
+
+                    user_HW[key]= int(user_HW[key])+int(HWDict[key])
+
+                #update project info 
+
+                    currentUser[key] = int(currentUser[key]) + int(HWDict[key])
+                    project_HW[key] = int(project_HW[key]) + int(HWDict[key])
+
+            elif (actionType == "check-in"):
+                avail = int(doc["availability"])
+                avail+= int(HWDict[key])
+                
+                #udpate hardware collection 
+                query = {"name": key}
+                update = {"$set": {"availability": avail}}
+                hardware_col.update_one(query,update)
+
+                #update user information
+
+                user_HW[key]= int(user_HW[key])-int(HWDict[key])
+
+                #update project info 
+                currentUser[key] = int(currentUser[key]) - int(HWDict[key])
+                project_HW[key] = int(project_HW[key]) - int(HWDict[key])
+
+
+        #after looping succesfully, post hardware updates to database at once
+        query = {"username":user}
+        update = {"$set": {"checked_out_hardware": user_HW}}
+        user_col.update_one(query,update)
+
+        print(currentUser)
+        projectMembers[user] = currentUser
+        query = {"id":project_id}
+        update = {"$set": {"project_members": projectMembers, "total_hw": project_HW}}
+        projects_col.update_one(query,update)
+
+
+        return {'Response': True, 'Message': 'Successfully Updated Project'}
+
+        # project_entry = projects_col.update({"id": project_id}, {"$set": {"HWSet1Alloc": h1_alloc, "HWSet2Alloc": h2_alloc}})
+        
+        # # now update hardware collection
+        
+        # cursor = hardware_col.find({})
+        # #id_hardware = "HWSet1Alloc"
+        # hardware_allocations = [h1_alloc, h2_alloc]
+        # index = 0
+        # for document in cursor:
+        #     id_hardware = document["id"]
+        #     # if they have allocated too much, sends error code 
+        #     if document["allocation"] - hardware_allocations[index] < 0:
+        #         return {'Response': 'Fail', 'Message': 'Allocated too much hardware'}
+        #     hardware_col.update_one({"id" : id_hardware}, {"$set": {"allocation" : document["allocation"] - hardware_allocations[index]}})
+        #     index = index + 1
+        # return {'Response': 'Success', 'Mesage': 'Successfully Allocated Hardware'}
             
 #retrieving all hardware sets
 @project.route('/get_hardware',methods =['GET', 'POST'])
