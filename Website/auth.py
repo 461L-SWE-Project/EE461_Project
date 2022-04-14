@@ -47,8 +47,6 @@ def login():
         # now checking w encryption
         hashed_value_user = encryption.hash_string(user)
         hashed_value_pass = encryption.hash_string(password)
-        print(encryption.hash_string(user),stderr)
-        print(encryption.hash_string(password),stderr)
         
         #now search in database
         mongo = init.getDatabase()

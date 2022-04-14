@@ -4,6 +4,7 @@ from flask_cors import CORS
 from os import path
 from .auth import auth
 from .project import project
+from .datasets import datasets
 
 
 mongo = None
@@ -19,7 +20,8 @@ def createApp():
     
     app.register_blueprint(auth, url_prefix='/')
     app.register_blueprint(project, url_prefix='/')
-    CORS(app)
+    app.register_blueprint(datasets, url_prefix='/')
+    CORS(app) #REMOVE IN DEPLOYMENT
     return app
     
 def getDatabase():
