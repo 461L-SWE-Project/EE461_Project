@@ -58,9 +58,7 @@ def login():
         # now checking w encryption
         hashed_value_user = encryption.hash_string(user)
         hashed_value_pass = encryption.hash_string(password)
-        print(encryption.hash_string(user),stderr)
-        print(encryption.hash_string(password),stderr)
-        
+       
         #now search in database
         mongo = init.getDatabase()
         user_col = mongo.db.user_authentication
@@ -76,7 +74,7 @@ def login():
             "username": user
         }
         active_col.insert_one(active_post)
-        return {"Response": True, 'Message': 'Successfully Logged in', 'token':access_token}  #Sidharth - We need to track logins somehow in order to validate project / dataset requests that are coming in.
+        return {"Response": True, 'Message': 'Successfully Logged in', 'token':access_token}
 
 
 @auth.route('/logout')
@@ -84,7 +82,7 @@ def login():
 def logout():
     current_user_id = get_jwt_identity()
     #delete from active users
-    active_col = mongo.db.active_users 
+    active_col = init.getDatabase().db.active_users 
     active_col.delete_one(active_col.find_one({'username': current_user_id}))
     
     return {"Response": True, "Message": "Successfully logged out"}
