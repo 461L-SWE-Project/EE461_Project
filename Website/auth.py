@@ -89,18 +89,21 @@ def login():
             "username": user
         }
         active_col.insert_one(active_post)
+     
         return {"Response": True, 'Message': 'Successfully Logged in', 'token':access_token} #Sidharth - We need to track logins somehow in order to validate project / dataset requests that are coming in.
 
 
-@auth.route('/logout')
+@auth.route('/logout', methods =['POST'])
 @jwt_required()
 def logout():
-    current_user_id = get_jwt_identity()
-    #delete from active users
-    active_col = mongo.db.active_users 
-    active_col.delete_one(active_col.find_one({'username': current_user_id}))
-    
-    return {"Response": True, "Message": "Successfully logged out"}
+    if request.method == 'POST':
+        current_user_id = get_jwt_identity()
+        print(current_user_id)
+        #delete from active users
+        mongo = init.getDatabase()
+        active_col = mongo.db.active_users 
+        active_col.delete_one(active_col.find_one({'username': current_user_id}))
+        return {"Response": True, "Message": "Successfully logged out"}
 
 # #this works
 # @auth.route('/register/<username>')
