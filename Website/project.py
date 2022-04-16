@@ -14,8 +14,15 @@ project = Blueprint('project', __name__)
 
 #WORKING 
 @project.route('/projects_homepage' ,methods=['POST'])
+@jwt_required()
 def getProjectInfo():
-    username = request.json["username"]
+    
+    active_col = mongo.db.active_users 
+    current_user_id = get_jwt_identity()
+    if(active_col.find_one({'username': current_user_id}) == None):
+        return {"Response": False, "Message": "User not found"}
+    
+    username = current_user_id
     mongo = init.getDatabase()
     users = mongo.db.user_authentication
     projects = mongo.db.project_information
