@@ -48,13 +48,13 @@ def getProjectInfo():
     """
     returnObj = {
         "username" : username,
-        "user total hardware allocation" : {},
-        "projects" : []
+        "UserTotalAlloc" : {},
+        "Projects" : []
     }
    
    #find user's total HW allocations
     checkedOutHW = user_info["checked_out_hardware"] #should also be dictionary form
-    returnObj["user total hardware allocation"] = checkedOutHW
+    returnObj["UserTotalAlloc"] = checkedOutHW
 
 
     #List of user's projects and total hardware checked out for each project
@@ -66,13 +66,13 @@ def getProjectInfo():
 
         projectAlloc = project["total_hw"] #should be a dictionary containing total hw allocation
 
-        projectAlloc["name"]  = projectName #Add project name and ID to that dictionary 
-        projectAlloc["id"]  = Id
+        projectAlloc["Name"]  = projectName #Add project name and ID to that dictionary 
+        projectAlloc["ID"]  = Id
         """
         Format:
         {
-            "name": ProjectName,
-            "id" : ID
+            "Name": ProjectName,
+            "ID" : ID
             "HW1": 40,
             "HW2: 30,
         }
@@ -80,7 +80,7 @@ def getProjectInfo():
       
         """
         #list of dictionaries
-        returnObj["projects"].append(projectAlloc)
+        returnObj["Projects"].append(projectAlloc)
 
 
 
@@ -120,7 +120,7 @@ def getProjectInfo():
             }
         }
         """
-    returnObj["general hardware info"] = hardware_allocations
+    #returnObj["general hardware info"] = hardware_allocations
     return returnObj
     
 
