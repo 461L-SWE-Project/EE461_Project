@@ -15,21 +15,24 @@ project = Blueprint('project', __name__)
 #WORKING 
 @project.route('/projects_homepage' ,methods=['POST'])
 @jwt_required()
-def getProjectInfo():
-    
+def getProjectInfo(): 
+    mongo = init.getDatabase()
     active_col = mongo.db.active_users 
     current_user_id = get_jwt_identity()
     if(active_col.find_one({'username': current_user_id}) == None):
         return {"Response": False, "Message": "User not found"}
     
     username = current_user_id
-    mongo = init.getDatabase()
+    print("USERNAMEEEE" +username)
+
     users = mongo.db.user_authentication
     projects = mongo.db.project_information
     hardware = mongo.db.hardware_resources
 
     #hashed_username = encryption.hash_string(username)
     user_info = users.find_one({"username": username})
+    print("USER INFOO")
+    print(user_info)
     """
         User:
             Username : ""
@@ -58,6 +61,7 @@ def getProjectInfo():
     projectIds = user_info["projects"]
     for Id in projectIds:
         project = projects.find_one({"id": Id})
+        print(project)
         projectName = project["name"]
 
         projectAlloc = project["total_hw"] #should be a dictionary containing total hw allocation
@@ -356,7 +360,6 @@ def join_project():
 @project.route('/update_project', methods =['POST'])
 @jwt_required()
 def update_project():
-
     #figure out how we're doing this
     if request.method == 'POST':
         
@@ -491,8 +494,14 @@ def send_hardware():
         cursor = hardware_col.find({})
         dictToSend = {}
         for elem in cursor:
-            dictToSend.update(elem['id'], elem)
-    return dictToSend
+            value = {
+                "Capacity": elem["capacity"],
+                "Availability": elem["availability"]
+            }
+            dictToSend[elem["name"]] = value
+
+        return dictToSend
+    return ""
 
 
 
