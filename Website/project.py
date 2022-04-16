@@ -3,6 +3,9 @@ from flask import Blueprint, Flask, request
 from flask_pymongo import PyMongo
 from . import init
 from . import encryption
+from flask_jwt_extended import jwt_required
+from flask_jwt_extended import create_access_token
+from flask_jwt_extended import get_jwt_identity
 
 
 project = Blueprint('project', __name__)
@@ -110,10 +113,18 @@ def getProjectInfo():
     return returnObj
     
 
-#WORKING AS OF RIGHT NOW   
+#WORKING AS OF RIGHT NOW with JWT 
 @project.route('/create_project' ,methods=['POST'])
-def createProject():       
-    username = request.json["username"]
+@jwt_required()
+def createProject():
+    # do jwt check here
+    mongo = init.getDatabase()
+    active_col = mongo.db.active_users 
+    current_user_id = get_jwt_identity()
+    if(active_col.find_one({'username': current_user_id}) == None):
+        return {"Response": False, "Message": "User not found"}
+         
+    # username = request.json["username"]
     mongo = init.getDatabase()
     users = mongo.db.user_authentication
     projects = mongo.db.project_information
@@ -121,7 +132,7 @@ def createProject():
 
 
     #hashed_username = encryption.hash_string(username)
-    user_info = users.find_one({"username":username})
+    user_info = users.find_one({"username":current_user_id})
     print(user_info)
 
 
@@ -129,7 +140,7 @@ def createProject():
         #do we want unique project names, or is it fine bc we have project IDs
         projectName = request.json["Name"]
         dateCreated = datetime.date.today() #vs datetime.datetime.now()
-        creator = username
+        creator = current_user_id
         hardware_allocation = {}
         projectMembers = {}
         ID = projectName + "_" + creator
@@ -176,7 +187,7 @@ def createProject():
         
         user_projects.append(ID)
         #after looping succesfully, post hardware updates to database at once
-        query = {"username":username}
+        query = {"username":current_user_id}
         update = {"$set": {"checked_out_hardware": user_HW, "projects":user_projects}}
         users.update_one(query,update)
 
@@ -184,7 +195,7 @@ def createProject():
 
 
         hardware_allocation = HWDict
-        projectMembers[username] = HWDict #first member = creator :)
+        projectMembers[current_user_id] = HWDict #first member = creator :)
 
         
         post = {
@@ -203,12 +214,21 @@ def createProject():
      
 
 
-
+# working with jwt
 @project.route('/delete_project' ,methods=['POST'])
+@jwt_required()
 def deleteProject(): 
+    
+    mongo = init.getDatabase()
+    active_col = mongo.db.active_users 
+    current_user_id = get_jwt_identity()
+    if(active_col.find_one({'username': current_user_id}) == None):
+        return {"Response": False, "Message": "User not found"}
+    
+    
     #need to send request object so I can get access to multiple pieces of data
     projectID = request.json["projectID"] #?
-    username = request.json["username"]
+    username = current_user_id
 
     mongo = init.getDatabase()
     users = mongo.db.user_authentication
@@ -253,15 +273,20 @@ def deleteProject():
         users.update_one(query, update)
 
 
-
-
     #FINALLY DELETE THE PROJECT
     projects.delete_one({"id":projectID})
     return {"Response": True, "Message": "Successfully deleted project"}
 
 @project.route('/join_project', methods = ['POST'])
+@jwt_required()
 def join_project():
     if request.method == 'POST':
+        
+        mongo = init.getDatabase()
+        active_col = mongo.db.active_users 
+        current_user_id = get_jwt_identity()
+        if(active_col.find_one({'username': current_user_id}) == None):
+            return {"Response": False, "Message": "User not found"}
 
         mongo = init.getDatabase()
         users = mongo.db.user_authentication
@@ -278,7 +303,7 @@ def join_project():
         # find_user = active_users.find_one({"token_id": token})
         # username = find_user["username"]
 
-        username = request.json["username"]
+        username = current_user_id
         project_to_join = request.json["projectID"] #?
 
 
@@ -322,11 +347,20 @@ def join_project():
         
 #update existing project
 @project.route('/update_project', methods =['POST'])
+@jwt_required()
 def update_project():
 
     #figure out how we're doing this
     if request.method == 'POST':
-        user = request.json['username']
+        
+        mongo = init.getDatabase()
+        active_col = mongo.db.active_users 
+        current_user_id = get_jwt_identity()
+        if(active_col.find_one({'username': current_user_id}) == None):
+            return {"Response": False, "Message": "User not found"}
+        
+        
+        user = current_user_id
         project_id = request.json["projectID"]
         actionType = request.json["action"]
         h1_alloc = request.json["HWSet1Alloc"]
@@ -337,7 +371,6 @@ def update_project():
             "HW2" : h2_alloc
         }
     
-        
 
         #change to fit format of the database
         mongo = init.getDatabase()
@@ -345,6 +378,8 @@ def update_project():
         projects_col = mongo.db.project_information 
         user_col = mongo.db.user_authentication
 
+        if projects_col.find_one({"id": project_id}) == None:
+            return {"Response": False, "Message": "No project id"}
         project = projects_col.find_one({"id": project_id})
         #project's total HW info
         project_HW = project["total_hw"]
@@ -395,10 +430,17 @@ def update_project():
                 #update user information
 
                 user_HW[key]= int(user_HW[key])-int(HWDict[key])
+                if user_HW[key] < 0:
+                    user_HW[key] = 0
 
                 #update project info 
                 currentUser[key] = int(currentUser[key]) - int(HWDict[key])
+                if currentUser[key] < 0:
+                    currentUser[key] = 0
                 project_HW[key] = int(project_HW[key]) - int(HWDict[key])
+                if project_HW[key] < 0:
+                    project_HW[key] = 0
+                
 
 
         #after looping succesfully, post hardware updates to database at once
