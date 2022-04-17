@@ -324,6 +324,10 @@ def join_project():
         #check if project exists
         if projects.find_one({"id": project_to_join}) == None:
             return {"Response" : False, "Message": "Project ID does not exist"}
+        project = projects.find_one({"id": project_to_join})
+        projectMembers = project["project_members"]
+        if username in projectMembers:
+             return {"Response" : False, "Message": "Already joined this project"}
 
         #add project to their list of projects
         user = users.find_one({"username":username})
