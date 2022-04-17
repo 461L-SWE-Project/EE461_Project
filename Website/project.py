@@ -221,7 +221,7 @@ def createProject():
 
         projects.insert_one(post)
         #update ID for next project creation
-        return  {"Response": "Success" , "Message": "Succesfully Created Project"}
+        return  {"Response": True , "Message": "Succesfully Created Project"}
      
 
 
