@@ -380,6 +380,9 @@ def update_project():
         actionType = request.json["action"]
         h1_alloc = request.json["HWSet1Alloc"]
         h2_alloc = request.json["HWSet2Alloc"]
+        
+        print(h1_alloc)
+        print("ABOVE IS H1 ALLOC WOO HOOOOOOOOOO")
 
         HWDict = {
             "HW1": h1_alloc,
@@ -417,6 +420,8 @@ def update_project():
                     return {"Response" : False, "Message" : errorMessage}
                 else:
                     avail = int(doc["availability"])
+                    print("THIS IS THE AVAIL AHAHAHAHAHAHAHA   ")
+                    print(avail)
                     avail-= int(HWDict[key])
                 
                 #udpate hardware collection 
@@ -434,6 +439,12 @@ def update_project():
                     project_HW[key] = int(project_HW[key]) + int(HWDict[key])
 
             elif (actionType == "check-in"):
+                # check
+                if int(HWDict[key]) > int(user_HW[key]):
+                    errorMessage = "Need to check in less than checked out"
+                    return {"Response" : False, "Message" : errorMessage}
+                    
+                
                 avail = int(doc["availability"])
                 avail+= int(HWDict[key])
                 
@@ -456,11 +467,12 @@ def update_project():
                 if project_HW[key] < 0:
                     project_HW[key] = 0
                 
-
+        print("AM I REACHEDDDDDDDDDDDDD")
 
         #after looping succesfully, post hardware updates to database at once
         query = {"username":user}
         update = {"$set": {"checked_out_hardware": user_HW}}
+        
         user_col.update_one(query,update)
 
         print(currentUser)
