@@ -8,9 +8,7 @@ from flask_jwt_extended import create_access_token
 from flask_jwt_extended import get_jwt_identity
 
 
-
 project = Blueprint('project', __name__)
-
 
 
 #WORKING 
@@ -236,8 +234,7 @@ def deleteProject():
     current_user_id = get_jwt_identity()
     if(active_col.find_one({'username': current_user_id}) == None):
         return {"Response": False, "Message": "User not found"}
-    
-    
+       
     #need to send request object so I can get access to multiple pieces of data
     projectID = request.json["projectID"] #?
     username = current_user_id
@@ -318,9 +315,6 @@ def join_project():
         username = current_user_id
         project_to_join = request.json["projectID"] #?
 
-
-
-
         #check if project exists
         if projects.find_one({"id": project_to_join}) == None:
             return {"Response" : False, "Message": "Project ID does not exist"}
@@ -380,9 +374,6 @@ def update_project():
         actionType = request.json["action"]
         h1_alloc = request.json["HWSet1Alloc"]
         h2_alloc = request.json["HWSet2Alloc"]
-        
-        print(h1_alloc)
-        print("ABOVE IS H1 ALLOC WOO HOOOOOOOOOO")
 
         HWDict = {
             "HW1": h1_alloc,
@@ -414,7 +405,11 @@ def update_project():
         for key in HWDict:
             #check if amount checked out is available -- 
             doc = hardware_col.find_one({"name":key})
-            if(actionType == "check-out"):                            
+            if int(HWDict[key]) < 0:
+                return  {"Response" : False, "Message" : "Must enter a positive integer"}
+            
+            if(actionType == "check-out"):   
+                     
                 if int(doc["availability"]) < int(HWDict[key]):
                     errorMessage = "Not enough hardware available: " +key
                     return {"Response" : False, "Message" : errorMessage}
@@ -467,8 +462,6 @@ def update_project():
                 if project_HW[key] < 0:
                     project_HW[key] = 0
                 
-        print("AM I REACHEDDDDDDDDDDDDD")
-
         #after looping succesfully, post hardware updates to database at once
         query = {"username":user}
         update = {"$set": {"checked_out_hardware": user_HW}}
