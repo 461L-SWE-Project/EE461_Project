@@ -492,13 +492,16 @@ def send_hardware():
         hardware_col = mongo.db.hardware_resources
         
         cursor = hardware_col.find({})
-        dictToSend = {}
+        dictToSend = {
+            "Hardware" : []
+        }
         for elem in cursor:
             value = {
+                "Name": elem["name"],
                 "Capacity": elem["capacity"],
                 "Availability": elem["availability"]
             }
-            dictToSend[elem["name"]] = value
+            dictToSend["Hardware"].append(value)
 
         return dictToSend
     return ""
