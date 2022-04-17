@@ -1,1 +1,1 @@
-web: gunicorn -w 5 main:app --log-level debug
+web: gunicorn -w 5 main:app --log-level debug --bind 0.0.0.0:33955
