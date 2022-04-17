@@ -9,7 +9,7 @@ from .datasets import datasets
 
 
 mongo = None
-app = Flask(__name__, static_folder="../../build", static_url_path='/')
+app = Flask(__name__, static_folder="../build", static_url_path='/')
 
 def createApp():
     ##used a test databse in my cluster for no2
