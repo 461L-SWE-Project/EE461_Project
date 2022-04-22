@@ -435,8 +435,8 @@ def update_project():
 
             elif (actionType == "check-in"):
                 # check
-                if int(HWDict[key]) > int(user_HW[key]):
-                    errorMessage = "Need to check in less than checked out"
+                if int(HWDict[key]) > int(currentUser[key]):
+                    errorMessage = "Need to check in less than you have checked out"
                     return {"Response" : False, "Message" : errorMessage}
                     
                 
