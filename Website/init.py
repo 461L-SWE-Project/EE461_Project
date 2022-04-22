@@ -9,7 +9,7 @@ from .datasets import datasets
 
 
 mongo = None
-app = Flask(__name__, static_folder="../../build", static_url_path='/')
+app = Flask(__name__, static_folder="../build", static_url_path='/')
 
 def createApp():
     ##used a test databse in my cluster for no2
@@ -22,7 +22,7 @@ def createApp():
     app.register_blueprint(auth, url_prefix='/')
     app.register_blueprint(project, url_prefix='/')
     app.register_blueprint(datasets, url_prefix='/')
-    CORS(app) #REMOVE IN DEPLOYMENT
+    # CORS(app) #REMOVE IN DEPLOYMENT
     return app
     
 def getDatabase():
@@ -31,3 +31,7 @@ def getDatabase():
 @app.route('/')
 def home():
     return app.send_static_file('index.html')
+
+@app.errorhandler(404)   
+def not_found(e):   
+  return app.send_static_file('index.html')
