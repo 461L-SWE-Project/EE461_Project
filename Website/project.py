@@ -413,8 +413,10 @@ def update_project():
         if projects_col.find_one({"id": project_id}) == None:
             return {"Response": False, "Message": "No project id"}
         project = projects_col.find_one({"id": project_id})
+        
         #project's total HW info
         project_HW = project["total_hw"]
+        
         #get users hw info for given project
         projectMembers = project["project_members"]
         currentUser = projectMembers[user]
@@ -424,6 +426,22 @@ def update_project():
         user_info = user_col.find_one({"username": user})
         #user's total HW info
         user_HW = user_info["checked_out_hardware"]
+        
+        
+        project_funds = int(project["funds"])
+      
+        HWalloc = []
+        HWalloc.append(int(h1_alloc))
+        HWalloc.append(int(h2_alloc))
+        idx = 0
+        #decrease funds by amount checked out. if it works, make this the new project_funds. If not, return an error
+        # for key in HWDict:
+        #     doc = hardware_col.find_one({"name":key})
+        #     var = str(doc["cost"])
+        #     print("THIS IS THE COSSTTTTT " + var)
+        #     costHW.append(int(doc["cost"]))
+        
+        
 
         for key in HWDict:
             #check if amount checked out is available -- 
@@ -432,13 +450,20 @@ def update_project():
                 return  {"Response" : False, "Message" : "Must enter a positive integer"}
             
             if(actionType == "check-out"):   
+                # project_funds -= (costHW[0] * int(h1_alloc))
+    
+
+                project_funds -= int(doc["cost"]) * HWalloc[idx]
+                if project_funds < 0:
+                    print(project_funds)
+                    return {"Response": False, "Message": "You do not have enough funds to checkout this much hardware!"}
                      
                 if int(doc["availability"]) < int(HWDict[key]):
                     errorMessage = "Not enough hardware available: " +key
                     return {"Response" : False, "Message" : errorMessage}
+              
                 else:
                     avail = int(doc["availability"])
-                    print("THIS IS THE AVAIL AHAHAHAHAHAHAHA   ")
                     print(avail)
                     avail-= int(HWDict[key])
                 
@@ -455,9 +480,12 @@ def update_project():
 
                     currentUser[key] = int(currentUser[key]) + int(HWDict[key])
                     project_HW[key] = int(project_HW[key]) + int(HWDict[key])
+                
 
             elif (actionType == "check-in"):
                 # check
+                project_funds += int(doc["cost"]) * HWalloc[idx]
+                
                 if int(HWDict[key]) > int(currentUser[key]):
                     errorMessage = "Need to check in less than you have checked out"
                     return {"Response" : False, "Message" : errorMessage}
@@ -484,6 +512,8 @@ def update_project():
                 project_HW[key] = int(project_HW[key]) - int(HWDict[key])
                 if project_HW[key] < 0:
                     project_HW[key] = 0
+                    
+            idx = idx + 1       
                 
         #after looping succesfully, post hardware updates to database at once
         query = {"username":user}
@@ -494,7 +524,7 @@ def update_project():
         print(currentUser)
         projectMembers[user] = currentUser
         query = {"id":project_id}
-        update = {"$set": {"project_members": projectMembers, "total_hw": project_HW}}
+        update = {"$set": {"project_members": projectMembers, "total_hw": project_HW, "funds": project_funds}}
         projects_col.update_one(query,update)
 
 
@@ -518,7 +548,7 @@ def update_project():
         # return {'Response': 'Success', 'Mesage': 'Successfully Allocated Hardware'}
             
 #retrieving all hardware sets
-#NEED TO UPDATE TO INCLUDE COST OF EACH HARDWARE SET
+
 @project.route('/get_hardware',methods =['GET', 'POST'])
 def send_hardware():
     if request.method == 'GET':
