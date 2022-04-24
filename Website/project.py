@@ -11,7 +11,7 @@ from flask_jwt_extended import get_jwt_identity
 project = Blueprint('project', __name__)
 
 
-#WORKING 
+#NEED TO UPDATE WITH FUNDS SHOWN
 @project.route('/projects_homepage' ,methods=['POST'])
 @jwt_required()
 def getProjectInfo(): 
@@ -45,10 +45,11 @@ def getProjectInfo():
     
     
     """
+
     returnObj = {
         "username" : username,
         "UserTotalAlloc" : {},
-        "Projects" : []
+        "Projects" : [], 
     }
    
    #find user's total HW allocations
@@ -62,11 +63,14 @@ def getProjectInfo():
         project = projects.find_one({"id": Id})
         print(project)
         projectName = project["name"]
-
+        project_funds = project['funds']
         projectAlloc = project["total_hw"] #should be a dictionary containing total hw allocation
 
         projectAlloc["Name"]  = projectName #Add project name and ID to that dictionary 
         projectAlloc["ID"]  = Id
+        projectAlloc["Funds"] = project_funds
+        
+        
         """
         Format:
         {
@@ -74,6 +78,8 @@ def getProjectInfo():
             "ID" : ID
             "HW1": 40,
             "HW2: 30,
+            "Funds:" 100,
+            
         }
 
       
@@ -123,7 +129,7 @@ def getProjectInfo():
     return returnObj
     
 
-#WORKING AS OF RIGHT NOW with JWT 
+#NEED TO REWRITE WITH FUNDS
 @project.route('/create_project' ,methods=['POST'])
 @jwt_required()
 def createProject():
@@ -154,6 +160,7 @@ def createProject():
         hardware_allocation = {}
         projectMembers = {}
         ID = projectName + "_" + creator
+        
 
 
         if projects.find_one({"id":ID}) != None:
@@ -162,12 +169,26 @@ def createProject():
         #how is hardware checkout info going to be sent to backend ?
         HW1 = request.json["HWSet1Alloc"]
         HW2 = request.json["HWSet2Alloc"] 
-
         
         HWDict = {
             "HW1": HW1,
             "HW2" : HW2
         }
+        
+        costHW = []
+        project_funds = int(request.json["Funds"])
+        #decrease funds by amount checked out. if it works, make this the new project_funds. If not, return an error
+        
+        for key in HWDict:
+            doc = hardware.find_one({"name":key})
+            costHW.append(int(doc["cost"]))
+        
+        project_funds -= (costHW[0] * int(HW1))
+        project_funds -= (costHW[1] * int(HW2))
+        
+        if project_funds < 0:
+            return {"Response": False, "Message": "Allocated more hardware than funds!"}
+       
         print("HW DICTIONARY " )
         print(HWDict)
 
@@ -214,7 +235,8 @@ def createProject():
             "creator": creator,
             "date_Created" : str(dateCreated),
             "total_hw" : HWDict,
-            "project_members" : projectMembers
+            "project_members" : projectMembers,
+            "funds": project_funds,
 
         }
 
@@ -224,7 +246,7 @@ def createProject():
      
 
 
-# working with jwt
+
 @project.route('/delete_project' ,methods=['POST'])
 @jwt_required()
 def deleteProject(): 
@@ -285,6 +307,7 @@ def deleteProject():
     #FINALLY DELETE THE PROJECT
     projects.delete_one({"id":projectID})
     return {"Response": True, "Message": "Successfully deleted project"}
+
 
 @project.route('/join_project', methods = ['POST'])
 @jwt_required()
@@ -352,10 +375,10 @@ def join_project():
 
 
 
-        
-#stuff malvika wrote (for debugging purposes)
+
         
 #update existing project
+#NEED TO UPDATE WITH FUNDS AND NEED TO RETURN ERROR IF NO MORE FUNDS LEFT
 @project.route('/update_project', methods =['POST'])
 @jwt_required()
 def update_project():
@@ -495,6 +518,7 @@ def update_project():
         # return {'Response': 'Success', 'Mesage': 'Successfully Allocated Hardware'}
             
 #retrieving all hardware sets
+#NEED TO UPDATE TO INCLUDE COST OF EACH HARDWARE SET
 @project.route('/get_hardware',methods =['GET', 'POST'])
 def send_hardware():
     if request.method == 'GET':
@@ -509,7 +533,8 @@ def send_hardware():
             value = {
                 "Name": elem["name"],
                 "Capacity": elem["capacity"],
-                "Availability": elem["availability"]
+                "Availability": elem["availability"],
+                "Cost": elem["cost"]   
             }
             dictToSend["Hardware"].append(value)
 
