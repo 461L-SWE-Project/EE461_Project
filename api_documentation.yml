@@ -1,0 +1,252 @@
+swagger: '2.0'
+info:
+  description: |
+    This is the API documentation for the EE461L Final Project
+  version: '1'
+  title: EE461L Final Project
+  termsOfService: http://swagger.io/terms/
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+tags:
+- name: user_login
+  description: "Contains user-related api calls, such as logging in and logging out"
+- name: projects
+  description: "Contains project-related api calls, such as creating/deleting projects"
+- name: hardware
+  description: "Contains hardware-related api calls, such as retrieving all hardware"
+paths:
+  /authenticate:
+    post:
+      tags:
+      - user_login
+      produces:
+      - application/json
+      parameters:
+      - in: body
+        name: data
+        description: username and password
+        required: true
+        schema:
+          $ref: '#/definitions/User_Info'
+      responses:
+        200:
+          description: successfully logged in
+        400:
+          description: username or password not found
+  /register:
+    post:
+      tags:
+      - user_login
+      produces:
+      - application/json
+      parameters:
+      - in: body
+        name: data
+        description: username and password
+        required: true
+        schema:
+          $ref: '#/definitions/User_Info'
+      responses:
+        200:
+          description: successfully created account
+        400:
+          description: username already exists
+  /logout:
+    post:
+      tags:
+      - user_login
+      produces:
+      - application/json
+      parameters:
+      - in: header
+        type: string
+        name: token
+        description: jwt token sent through header
+        required: true
+      responses:
+        200:
+          description: successfully logged out
+  
+  /projects_homepage:
+    post:
+      tags:
+      - projects
+      produces:
+      - application/json
+      parameters:
+      - in: header
+        type: string
+        name: token
+        description: jwt token sent through header
+        required: true
+      responses:
+        200:
+          description: returns list of dictionaries of users' projects
+          schema:
+           $ref: '#/definitions/Users_projects'
+        400:
+          description: specific error message
+  /create_project:
+    post:
+      tags:
+      - projects
+      produces:
+      - application/json
+      parameters:
+      - in: header
+        type: string
+        name: token
+        description: jwt token sent through header
+        required: true
+      - in: body
+        name: data
+        description: username and password
+        required: true
+        schema:
+          $ref: '#/definitions/Create_project'
+      responses:
+        200:
+          description: project created successfully
+        400:
+          description: project not created successfully 
+          
+  /delete_project:
+    post:
+      tags:
+      - projects
+      produces:
+      - application/json
+      parameters:
+      - in: header
+        type: string
+        name: token
+        description: jwt token sent through header
+        required: true
+      - in: body
+        name: data
+        description: username and project ID
+        required: true
+        schema:
+          $ref: '#/definitions/Info_project'
+      responses:
+        200:
+          description: project successfully deleted
+        400:
+          description: project unable to be deleted 
+          
+  /join_project:
+    post:
+      tags:
+      - projects
+      produces:
+      - application/json
+      parameters:
+      - in: header
+        type: string
+        name: token
+        description: jwt token sent through header
+        required: true
+      - in: body
+        name: data
+        description: username and project ID
+        required: true
+        schema:
+          $ref: '#/definitions/Info_project'
+      responses:
+        200:
+          description: successfully joined project
+        400:
+          description: unable to join project 
+  /update_project:
+    post:
+      tags:
+      - projects
+      produces:
+      - application/json
+      parameters:
+      - in: header
+        type: string
+        name: token
+        description: jwt token sent through header
+        required: true
+      - in: body
+        name: data
+        description: ProjectID and hardware allocation to be checked in or checked out
+        required: true
+        schema:
+          $ref: '#/definitions/Update_project'
+      responses:
+        200:
+          description: successfully updated project
+        400:
+          description: unable to update project 
+  /get_hardware:
+    get:
+      tags:
+      - hardware
+      responses:
+        200:
+          description: Dictionary of hardware sets
+definitions:
+  Users_projects:
+    type: object
+    properties:
+      name:
+        type: string
+      ID:
+        type: string
+      HW1:
+        type: integer
+        format: int64
+      HW2: 
+        type: integer
+        format: int64
+  User_Info:
+    type: object
+    properties:
+      username:
+        type: string
+      password: 
+        type: string
+  Create_project:
+    type: object
+    properties:
+      username:
+        type: string
+      name: 
+        type: string
+      HW1 Allocation:
+        type: integer
+        format: int32
+      HW2 Allocation:
+        type: integer
+        format: int32
+  Info_project:
+    type: object
+    properties:
+      username:
+        type: string
+      projectID:
+        type: string
+  Update_project:
+    type: object
+    properties:
+      username:
+        type: string
+      projectID:
+        type: string
+      action:
+        type: string
+      HWSet1Alloc:
+        type: integer
+        format: int32
+      HWSet2Alloc:
+        type: integer
+        format: int32
+# Added by API Auto Mocking Plugin
+host: virtserver.swaggerhub.com
+basePath: /malvikavaidya/EE461L_Final_Project/1.0.0
+schemes:
+ - https
+ - http
