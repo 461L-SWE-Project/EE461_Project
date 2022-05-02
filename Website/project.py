@@ -22,7 +22,7 @@ def getProjectInfo():
         return {"Response": False, "Message": "User not found"}
     
     username = current_user_id
-    print("USERNAMEEEE" +username)
+    #print("USERNAMEEEE" +username)
 
     users = mongo.db.user_authentication
     projects = mongo.db.project_information
@@ -30,8 +30,8 @@ def getProjectInfo():
 
     #hashed_username = encryption.hash_string(username)
     user_info = users.find_one({"username": username})
-    print("USER INFOO")
-    print(user_info)
+    # print("USER INFOO")
+    # print(user_info)
     """
         User:
             Username : ""
@@ -60,13 +60,17 @@ def getProjectInfo():
     projectIds = user_info["projects"]
     for Id in projectIds:
         project = projects.find_one({"id": Id})
-        print(project)
+        # print(project)
         projectName = project["name"]
 
         projectAlloc = project["total_hw"] #should be a dictionary containing total hw allocation
 
         projectAlloc["Name"]  = projectName #Add project name and ID to that dictionary 
         projectAlloc["ID"]  = Id
+        projectAlloc["Date_Created"] = str(project["date_Created"])
+        print(projectAlloc["Date_Created"])
+
+        # myProjectAlloc = project["ProjectMembers"]
         """
         Format:
         {
@@ -74,6 +78,9 @@ def getProjectInfo():
             "ID" : ID
             "HW1": 40,
             "HW2: 30,
+            "MyHW1" : 
+            "MyHW2": 
+            "Date Created":
         }
 
       
