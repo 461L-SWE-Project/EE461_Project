@@ -490,10 +490,15 @@ def update_project():
                 # check
                 project_funds += int(doc["cost"]) * HWalloc[idx]
                 
+                if int(HWDict[key]) <= int(project_HW[key]) and int(HWDict[key]) > int(currentUser[key]):
+                    errorMessage = "Users can only check-in hardware that they checked out!"
+                    return {"Response" : False, "Message" : errorMessage}
+                
+                #above to be deleted if errors 
+                
                 if int(HWDict[key]) > int(currentUser[key]):
                     errorMessage = "Need to check in less than you have checked out"
                     return {"Response" : False, "Message" : errorMessage}
-                    
                 
                 avail = int(doc["availability"])
                 avail+= int(HWDict[key])
