@@ -70,6 +70,10 @@ def getProjectInfo():
         projectAlloc["ID"]  = Id
         projectAlloc["Funds"] = project_funds
         
+        indiv_hw = project["project_members"][username]
+        projectAlloc["My_HW1"] = indiv_hw["HW1"]
+        projectAlloc["My_HW2"] = indiv_hw["HW2"]
+        
         
         """
         Format:
@@ -79,6 +83,7 @@ def getProjectInfo():
             "HW1": 40,
             "HW2: 30,
             "Funds:" 100,
+
             
         }
       
