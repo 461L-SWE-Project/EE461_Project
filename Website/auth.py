@@ -102,6 +102,18 @@ def logout():
         active_col = mongo.db.active_users 
         active_col.delete_one(active_col.find_one({'username': current_user_id}))
         return {"Response": True, "Message": "Successfully logged out"}
+    
+@auth.route('/timeout', methods =['POST'])
+def timeout():
+    if request.method == 'POST':
+        # user_id = request.json["username"]
+        # mongo = init.getDatabase()
+        # active_col = mongo.db.active_users 
+        # active_col.delete_one(active_col.find_one({'username': user_id}))
+        print("am i even reaching")
+        return {"Response": True, "Message": "User logged out due to inactivity"}
+        # return {"Response": True, "Message": "User logged out due to inactivity"}
+    
 
 # #this works
 # @auth.route('/register/<username>')
